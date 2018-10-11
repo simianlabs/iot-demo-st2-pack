@@ -1,0 +1,57 @@
+version: '2.0'
+
+iotdemopack.IoT_Demo_destroy:
+  description: Destroy SaltStack minions with help of terraform and AwS IoT buttom
+  type: direct
+  input:
+    - name
+    - type
+  tasks:
+    flow_start:
+      action: chatops.post_message
+      description: Notify slack when workflow start
+      input:
+        channel: aws-iot
+        message: 'StackStorm recieved `<% $.type %>` click from AWS IoT. Running `iotdemopack.IoT_Demo_destroy workflow` which will build environment for `<% $.name %>`'
+      on-success:
+        - destroy 
+      on-error:
+        - flow_fail
+
+    destroy:
+      action: terraform.destroy
+      description: Destroy terraform project
+      input:
+        plan_path: '/opt/terraform/aws-web-demo-tf'
+        variable_files: ["/opt/terraform/tfvars/iotdemo.tfvars"]
+        env: {"AWS_ACCESS_KEY_ID":"YOURAWSACCESSKEYIDHERE", "AWS_SECRET_ACCESS_KEY": "YOURAWSSECRETKEYHERE", "AWS_DEFAULT_REGION":"eu-west-1"}
+      on-success:
+        - delete
+      on-error:
+        - flow_fail
+
+    delete:
+      action: core.local_sudo
+      description: Delete minion keys from salt master
+      input:
+        cmd: 'salt-key -d <% $.name %>* -y'
+      on-error:
+        - flow_fail
+      on-success:
+        - flow_success 
+
+    flow_success:
+      action: chatops.post_message
+      description: Notify slack when workflow finish successfully
+      input:
+        channel: aws-iot
+        message: 'Workflow `iotdemopack.IoT_Demo_destroy workflow` finished.'
+
+    flow_fail:
+      action: chatops.post_message
+      description: Notify slack when workflow fail
+      input:
+        channel: aws-iot
+        message: 'Workflow `iotdemopack.IoT_Demo_destroy workflow` failed. Please investigate.'
+      on-success:
+        - fail

@@ -1,0 +1,112 @@
+version: '2.0'
+
+iotdemopack.IoT_Demo_deploy:
+  description: Deploy SaltStack minions with help of terraform and AwS IoT buttom
+  type: direct
+  input:
+    - name
+    - type
+  tasks:
+    flow_start:
+      action: chatops.post_message
+      description: Notify slack when workflow start
+      input:
+        channel: aws-iot
+        message: 'StackStorm recieved `<% $.type %>` click from AWS IoT. Running `iotdemopack.IoT_Demo_deploy workflow` which will build environment for `<% $.name %>`'
+      on-success:
+        - clone 
+      on-error:
+        - flow_fail
+
+    clone:
+      action: git.clone
+      description: Clone repository with terraform code
+      input:
+        source: https://github.com/iotdemopack/aws-web-demo-tf.git
+        destination: '/opt/terraform/aws-web-demo-tf'
+        hosts: localhost
+      on-success:
+        - rename 
+      on-error:
+        - pull
+        
+    pull:
+      action: core.local_sudo
+      description: Pull latest version if project already cloned
+      input:
+        cmd: 'git pull'
+        cwd: '/opt/terraform/aws-web-demo-tf'
+      on-success:
+        - rename 
+      on-error:
+        - flow_fail
+
+    rename:
+      action: core.local_sudo
+      description: Add serial NO from IoT buttom to minion name in tfvares
+      input:
+        cmd: 'sed -i -r "s/keyName = \".+\"/keyName = \"<% $.name %>-minion\"/g" /opt/terraform/tfvars/iotdemo.tfvars'
+      on-success:
+        - init 
+      on-error:
+        - flow_fail
+
+    init:
+      action: terraform.init
+      description: Initialize terraform project
+      input:
+        plan_path: '/opt/terraform/aws-web-demo-tf'
+        env: {"AWS_ACCESS_KEY_ID":"YOURAWSACCESSKEYIDHERE", "AWS_SECRET_ACCESS_KEY": "YOURAWSSECRETKEYHERE", "AWS_DEFAULT_REGION":"eu-west-1"}
+      on-success:
+        - apply
+      on-error:
+        - flow_fail
+
+    apply:
+      action: terraform.apply
+      description: Apply terraform project
+      input:
+        plan_path: '/opt/terraform/aws-web-demo-tf'
+        variable_files: ["/opt/terraform/tfvars/iotdemo.tfvars"]
+        env: {"AWS_ACCESS_KEY_ID":"YOURAWSACCESSKEYIDHERE", "AWS_SECRET_ACCESS_KEY": "YOURAWSSECRETKEYHERE", "AWS_DEFAULT_REGION":"eu-west-1"}
+      on-success:
+        - wait
+      on-error:
+        - flow_fail
+    
+    wait:
+      action: core.pause
+      description: Pause workflow and wait for minion to connect to saltmaster.
+      input:
+        max_pause: 90
+      on-error:
+        - flow_fail
+      on-success:
+        - accept 
+
+
+    accept:
+      action: core.local_sudo
+      description: Accept keys on salt master
+      input:
+        cmd: 'salt-key -a <% $.name %>* -y'
+      on-error:
+        - flow_fail
+      on-success:
+        - flow_success 
+
+    flow_success:
+      action: chatops.post_message
+      description: Notify slack when workflow finish successfully
+      input:
+        channel: aws-iot
+        message: 'Workflow `iotdemopack.IoT_Demo_deploy workflow` finished.'
+
+    flow_fail:
+      action: chatops.post_message
+      description: Notify slack when workflow fail
+      input:
+        channel: aws-iot
+        message: 'Workflow `iotdemopack.IoT_Demo_deploy workflow` failed. Please investigate.'
+      on-success:
+        - fail

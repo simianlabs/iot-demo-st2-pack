@@ -1,0 +1,11 @@
+---
+name : iotdemopack
+description : IoT buttom demo pack
+keywords:
+  - aws
+  - terraform
+  - webhook
+version : 1.0.0
+author : Stefan Monko
+email : smonko@simianlabs.io
+

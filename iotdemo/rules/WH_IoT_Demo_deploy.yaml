@@ -1,0 +1,25 @@
+---
+enabled: true
+pack: iotdemopack
+name: WH_IoT_Demo_deploy
+
+type:
+  ref: standard
+  parameters:
+
+trigger:
+  type: core.st2.webhook
+  parameters:
+    url: lambda-iot-webhook
+
+criteria:
+  trigger.body.type:
+    type: "equals"
+    pattern: "SINGLE"
+action:
+  ref: iotdemopack.IoT_Demo_deploy
+  parameters:
+    context:
+      name: "{{trigger.body.name}}"
+      type: "{{trigger.body.type}}"
+

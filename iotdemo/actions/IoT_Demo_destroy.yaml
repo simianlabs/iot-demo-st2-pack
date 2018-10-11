@@ -1,0 +1,7 @@
+---
+description: IoT_Demo_destroy workflow
+enabled: true
+runner_type: mistral-v2
+entry_point: workflows/IoT_Demo_destroy.yaml
+name: IoT_Demo_destroy
+pack: iotdemopack
