@@ -1,7 +1,7 @@
 version: '2.0'
 
 iotdemopack.IoT_Demo_deploy:
-  description: Deploy SaltStack minions with help of terraform and AwS IoT buttom
+  description: Deploy SaltStack minions with terraform and connect them to master
   type: direct
   input:
     - name
@@ -20,7 +20,7 @@ iotdemopack.IoT_Demo_deploy:
 
     clone:
       action: git.clone
-      description: Clone repository with terraform code
+      description: Clone repository with terraform project
       input:
         source: https://github.com/iotdemopack/aws-web-demo-tf.git
         destination: '/opt/terraform/aws-web-demo-tf'
@@ -43,7 +43,7 @@ iotdemopack.IoT_Demo_deploy:
 
     rename:
       action: core.local_sudo
-      description: Add serial NO from IoT buttom to minion name in tfvares
+      description: Add serial number from IoT buttom to minion name in tfvares (for naming convention)
       input:
         cmd: 'sed -i -r "s/keyName = \".+\"/keyName = \"<% $.name %>-minion\"/g" /opt/terraform/tfvars/iotdemo.tfvars'
       on-success:
