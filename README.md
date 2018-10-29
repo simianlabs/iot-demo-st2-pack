@@ -11,6 +11,10 @@ $ st2ctl reload --register-all
 ```
 3. Modify placeholders in workflows or customize pack accoridng your needs.
 
+### Setting IoT deployment.
+
+Full tutorial available: https://simianlabs.io/2018/10/17/infrastructure-on-click/
+
 ### Maintainer
 Stefan Monko || smonko@simianlabs.io  
 `Simian Labs` - (https://github.com/simianlabs)  
